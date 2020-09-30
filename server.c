@@ -11,6 +11,8 @@
 
 struct factorRunner {
     int number;
+    int ll;
+    int ul;
     int* answer;
     int threadID;
 };
@@ -60,16 +62,15 @@ void* factorise(void* arg){
     struct factorRunner *arg_struct = (struct factorRunner*) arg;
     int* binary = convertToBinary(arg_struct->number);
 
-    printf("Thread ID: %d  Number: %d\n",arg_struct->threadID,arg_struct->number);
-    
-    for(int f=1;f<arg_struct->number;f++){
+    //printf("Thread ID: %d  Number: %d  ll:%d  ul:%d\n",arg_struct->threadID,arg_struct->number,arg_struct->ll,arg_struct->ul);
+    if(arg_struct->ll <= 0)
+        arg_struct->ll += 1;
+        
+    for(int f=arg_struct->ll;f<=arg_struct->ul;f++){
         if(arg_struct->number % f == 0){
             printf("++ A factor of %d = %d\n",arg_struct->number,f);
         }
     }
-    
-    
-    
     pthread_exit(0);
 }
 
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]){
     int ShmID;
     struct Memory *ShmPTR;
     int binaryShifts[32];
-    int numberOfThreads = 32;
+    int numberOfThreads = 10;
     struct factorRunner args[numberOfThreads];
     
     ShmKEY = ftok(".", 'x');
@@ -110,11 +111,19 @@ int main(int argc, char *argv[]){
     }
     
     pthread_t tids[numberOfThreads];
-    
-    for(int i=0;i<numberOfThreads;i++){
-        args[i].number = binaryShifts[i];
-        args[i].threadID = i;
-        pthread_create(&tids[i],NULL,factorise,&args[i]);
+    int threadDepth;
+
+    for(int i=0;i<numberOfThreads/10;i++){
+        threadDepth = binaryShifts[i] / 10;
+        printf("%d THREAD DEPTH\n",threadDepth);
+        for(int j=0;j<10;j++){
+            args[i+j].number = binaryShifts[i];
+            args[i+j].threadID = i+j;
+            args[i+j].ll = ((i+j)*threadDepth)+1;
+            args[i+j].ul = (i+j+1)*threadDepth;
+            pthread_create(&tids[i+j],NULL,factorise,&args[i+j]);
+        }
+
     }
 
     for(int i=0;i<numberOfThreads;i++){
