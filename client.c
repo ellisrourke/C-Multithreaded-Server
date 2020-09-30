@@ -15,13 +15,13 @@ int main(int argc, char *argv[]){
     int ShmID;
     struct Memory *ShmPTR;
     
-    if(argc != 2){
+    if(argc < 2){
         printf("Please provide an integer...\n");
         exit(1);
     }
     
     int number = atoi(argv[1]);
-    
+    int num2 = atoi(argv[2]);
     printf("...\n");
     
     ShmKEY = ftok(".",'x');
@@ -45,7 +45,20 @@ int main(int argc, char *argv[]){
     ShmPTR->status = FILLED;
     //ShmPTR->resultStatus = 0;
     
+    
+    ShmPTR->numRequests = argc-1;
+    for(int i=0;i<argc-1;i++){
+        ShmPTR->request[i] = atoi(argv[i+1]);
+    }
+    for(int i=0;i<argc-1;i++){
+        printf("%d\n",ShmPTR->request[i]);
+    }
+    
+    
+    
+    
     printf("[?] Please start the server...\n");
+    
     
     while(1){
         if(ShmPTR->status == -2){
@@ -53,6 +66,8 @@ int main(int argc, char *argv[]){
         }
         sleep(1);
     }
+    
+    
     
     printf("[+] Server completion detected...\n");
     shmdt((void *) ShmPTR);

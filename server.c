@@ -75,10 +75,7 @@ void* factorise(void* arg){
             }
             //arg_struct->result = f;
             //arg_struct->ShmPTR->resultStatus = 1;
-        }
-
-        
-    
+    }
     sleep(5);
     pthread_exit(0);
 }
@@ -109,7 +106,14 @@ int main(int argc, char *argv[]){
     }
     printf("[+] Shared Memory Sucesfully Attached...\n");
     
-    printf("Number from client: %d\n",ShmPTR->number);
+    printf("Requests from client...\n");
+    for(int i=0;i<ShmPTR->numRequests;i++){
+        printf("%d ",ShmPTR->request[i]);
+    } printf("\n");
+    
+    
+    
+    //printf("Number from client: %d\n",ShmPTR->number);
     int* num;
     num = convertToBinary(ShmPTR->number);
     
