@@ -43,6 +43,7 @@ int main(int argc, char *argv[]){
 
     ShmPTR->number = number;
     ShmPTR->status = FILLED;
+    //ShmPTR->resultStatus = 0;
     
     printf("[?] Please start the server...\n");
     
@@ -51,7 +52,6 @@ int main(int argc, char *argv[]){
             break;
         }
         sleep(1);
-
     }
     
     printf("[+] Server completion detected...\n");

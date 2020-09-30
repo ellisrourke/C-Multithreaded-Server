@@ -69,8 +69,17 @@ void* factorise(void* arg){
     for(int f=arg_struct->ll;f<=arg_struct->ul;f++){
         if(arg_struct->number % f == 0){
             printf("++ A factor of %d = %d\n",arg_struct->number,f);
+            //while(arg_struct->ShmPTR->resultStatus == 1){
+            //    printf("Client Busy... Waiting...");
+            //    sleep(2);
+            }
+            //arg_struct->result = f;
+            //arg_struct->ShmPTR->resultStatus = 1;
         }
-    }
+
+        
+    
+    sleep(5);
     pthread_exit(0);
 }
 
@@ -121,6 +130,7 @@ int main(int argc, char *argv[]){
             args[i+j].threadID = i+j;
             args[i+j].ll = ((i+j)*threadDepth)+1;
             args[i+j].ul = (i+j+1)*threadDepth;
+            //args[i+j].ShmPTR = ShmPTR;
             pthread_create(&tids[i+j],NULL,factorise,&args[i+j]);
         }
 
@@ -128,6 +138,7 @@ int main(int argc, char *argv[]){
 
     for(int i=0;i<numberOfThreads;i++){
         pthread_join(tids[i],NULL);
+        //ShmPTR->result = t
     }
 
     
