@@ -11,12 +11,11 @@
 
 struct factorRunner {
     int number;
-    int ll;
-    int ul;
-    int* answer;
+    //int* answer;
     int threadID;
 };
 
+struct Memory* sharedData;
 
 int* convertToBinary(int number){
     int n, c, k;
@@ -62,19 +61,26 @@ void* factorise(void* arg){
     struct factorRunner *arg_struct = (struct factorRunner*) arg;
     int* binary = convertToBinary(arg_struct->number);
 
-    //printf("Thread ID: %d  Number: %d  ll:%d  ul:%d\n",arg_struct->threadID,arg_struct->number,arg_struct->ll,arg_struct->ul);
-    if(arg_struct->ll <= 0)
-        arg_struct->ll += 1;
-        
-    for(int f=arg_struct->ll;f<=arg_struct->ul;f++){
+    if(arg_struct->number < 1){
+        printf("Negative Thread..\n");
+        pthread_exit(0);
+    }
+    
+    printf("Thread ID: %d  Number: %d\n",arg_struct->threadID,arg_struct->number);
+    for(int f=2;f<arg_struct->number;f++){
         if(arg_struct->number % f == 0){
-            printf("++ A factor of %d = %d\n",arg_struct->number,f);
-            //while(arg_struct->ShmPTR->resultStatus == 1){
-            //    printf("Client Busy... Waiting...");
-            //    sleep(2);
+            //printf("[>] A factor of %d = %d\n",arg_struct->number,f);
+            while(1){
+                if(sharedData->status == 1){
+                    usleep( 500000 );
+                } else {
+                    sharedData->status = 1;
+                    sharedData->number = f;
+                    sharedData->current = arg_struct->number;
+                    break;
+                }
             }
-            //arg_struct->result = f;
-            //arg_struct->ShmPTR->resultStatus = 1;
+        }
     }
     sleep(5);
     pthread_exit(0);
@@ -88,13 +94,11 @@ int main(int argc, char *argv[]){
     int ShmID;
     struct Memory *ShmPTR;
     int binaryShifts[32];
-    int numberOfThreads = 10;
-    struct factorRunner args[numberOfThreads];
     
     ShmKEY = ftok(".", 'x');
-    ShmID = shmget(ShmKEY, sizeof(struct Memory), 0666);
-    if (ShmID < 0){
-        printf("[x] shmget error on server side...\n");
+    ShmID = shmget(ShmKEY, sizeof(struct Memory), IPC_CREAT | 0666);
+    if(ShmID < 0){
+        printf("[x] shmget error on client side...\n");
         exit(1);
     }
     printf("[+] Shared Memory Recieved Sucesfully...\n");
@@ -106,48 +110,58 @@ int main(int argc, char *argv[]){
     }
     printf("[+] Shared Memory Sucesfully Attached...\n");
     
-    printf("Requests from client...\n");
+    printf("Requests from client: [ ");
     for(int i=0;i<ShmPTR->numRequests;i++){
         printf("%d ",ShmPTR->request[i]);
-    } printf("\n");
+    } printf("]\nFactoring will start in 2 seconds...\n");
+    sleep(2);
     
     
+    
+    sharedData = ShmPTR;
+
+    
+    
+    
+    int numberOfThreads = 32 * ShmPTR->numRequests;
+    struct factorRunner args[numberOfThreads];
     
     //printf("Number from client: %d\n",ShmPTR->number);
-    int* num;
-    num = convertToBinary(ShmPTR->number);
-    
-    for(int i=0; i<numberOfThreads;i++){
-        int current = binaryToDecimal(num);
-        binaryShifts[i] = current;
-        num = arrayShift(num);
-    }
-    
-    pthread_t tids[numberOfThreads];
-    int threadDepth;
+    for(int c=0;c<ShmPTR->numRequests;c++){
+        printf("----------- Request Number: %d -----------\n",c);
+        int* num;
+        //num = convertToBinary(ShmPTR->number);
+        num = convertToBinary(ShmPTR->request[c]);
+        for(int i=0; i<32;i++){
+            int current = binaryToDecimal(num);
+            binaryShifts[i] = current;
+            num = arrayShift(num);
+        }
+        
+        pthread_t tids[32];
+        int threadDepth;
 
-    for(int i=0;i<numberOfThreads/10;i++){
-        threadDepth = binaryShifts[i] / 10;
-        printf("%d THREAD DEPTH\n",threadDepth);
-        for(int j=0;j<10;j++){
-            args[i+j].number = binaryShifts[i];
-            args[i+j].threadID = i+j;
-            args[i+j].ll = ((i+j)*threadDepth)+1;
-            args[i+j].ul = (i+j+1)*threadDepth;
+        for(int j=0;j<31;j++){
+            args[j].number = binaryShifts[j];
+            args[j].threadID = j;
+            //args[i+j].ll = ((i+j)*threadDepth)+1;
+            //args[i+j].ul = (i+j+1)*threadDepth;
             //args[i+j].ShmPTR = ShmPTR;
-            pthread_create(&tids[i+j],NULL,factorise,&args[i+j]);
+            pthread_create(&tids[j],NULL,factorise,&args[j]);
         }
 
+        for(int i=0;i<numberOfThreads;i++){
+            pthread_join(tids[i],NULL);
+            //ShmPTR->result = t
+        }
+        ShmPTR->status = -3;
     }
-
-    for(int i=0;i<numberOfThreads;i++){
-        pthread_join(tids[i],NULL);
-        //ShmPTR->result = t
-    }
-
     
     //EXIT
+    printf("\n[+] Server Exiting...");
     ShmPTR->status = -2;
+    ShmPTR->number = -1;
+
 
     exit(0);
 }
