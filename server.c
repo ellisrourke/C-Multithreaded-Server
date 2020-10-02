@@ -62,11 +62,11 @@ void* factorise(void* arg){
     int* binary = convertToBinary(arg_struct->number);
 
     if(arg_struct->number < 1){
-        printf("Negative Thread..\n");
+        //printf("Negative Thread..\n");
         pthread_exit(0);
     }
     
-    printf("Thread ID: %d  Number: %d\n",arg_struct->threadID,arg_struct->number);
+    //printf("Thread ID: %d  Number: %d\n",arg_struct->threadID,arg_struct->number);
     for(int f=2;f<arg_struct->number;f++){
         if(arg_struct->number % f == 0){
             //printf("[>] A factor of %d = %d\n",arg_struct->number,f);
@@ -152,8 +152,10 @@ int main(int argc, char *argv[]){
 
         for(int i=0;i<numberOfThreads;i++){
             pthread_join(tids[i],NULL);
+            printf("progress: %f percent\n",((double)i/numberOfThreads)*100);
             //ShmPTR->result = t
-        }
+        } printf("progress: 100 percent\n");
+
         ShmPTR->status = -3;
     }
     
